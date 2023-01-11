@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import json
+import os
+
 import numpy as np
 import open3d as o3d
-from tqdm import tqdm
-from scipy.spatial.transform import Rotation as R
-
 from noc_transform.Data.obb import OBB
+from noc_transform.Module.transform_generator import TransformGenerator
+from scipy.spatial.transform import Rotation as R
+from tqdm import tqdm
 
-from obb_transfer.Method.path import createFileFolder, renameFile
-from obb_transfer.Method.render import renderSceneWithOBB, renderObjectWithOBB
+from obb_transfer.Method.path import createFileFolder, renameFile, removeFile
+from obb_transfer.Method.render import renderObjectWithOBB, renderSceneWithOBB
 
 
 class OBBTransfer(object):
 
     def __init__(self):
+        self.transform_generator = TransformGenerator()
+
         self.scene_pcd = None
         self.obb_dict = {}
         return
@@ -73,7 +76,13 @@ class OBBTransfer(object):
             trans_points = rotate_points + position
             obb.points = trans_points
 
-            self.obb_dict[obj_id] = {'class': obj_type, 'obb': obb}
+            noc_trans_matrix = self.transform_generator.getNOCTransform(obb)
+
+            self.obb_dict[obj_id] = {
+                'class': obj_type,
+                'obb': obb,
+                'noc_trans_matrix': noc_trans_matrix,
+            }
         return True
 
     def generateObjectPCD(self, print_progress=False):
@@ -92,7 +101,67 @@ class OBBTransfer(object):
             self.obb_dict[obb_label]['object_pcd'] = object_pcd
         return True
 
-    def saveAll(self, save_folder_path):
+    def saveObjectPCD(self, obb_label, save_object_file_path):
+        assert obb_label in self.obb_dict.keys()
+
+        obb_info = self.obb_dict[obb_label]
+
+        tmp_save_object_file_path = save_object_file_path[:-4] + "_tmp.pcd"
+        createFileFolder(tmp_save_object_file_path)
+
+        object_pcd = obb_info['object_pcd']
+        o3d.io.write_point_cloud(tmp_save_object_file_path,
+                                 object_pcd,
+                                 write_ascii=True)
+
+        renameFile(tmp_save_object_file_path, save_object_file_path)
+        return True
+
+    def saveOBBTransMatrix(self, obb_label, save_obb_trans_matrix_file_path):
+        assert obb_label in self.obb_dict.keys()
+
+        obb_info = self.obb_dict[obb_label]
+
+        tmp_save_obb_trans_matrix_file_path = save_obb_trans_matrix_file_path[:
+                                                                              -5] + "_tmp.json"
+        createFileFolder(tmp_save_obb_trans_matrix_file_path)
+
+        noc_trans_matrix = obb_info['noc_trans_matrix']
+        noc_trans_matrix_dict = {'noc_trans_matrix': noc_trans_matrix.tolist()}
+        with open(tmp_save_obb_trans_matrix_file_path, 'w') as f:
+            json.dump(noc_trans_matrix_dict, f, indent=4)
+
+        renameFile(tmp_save_obb_trans_matrix_file_path,
+                   save_obb_trans_matrix_file_path)
+        return True
+
+    def saveOBB(self, obb_label, save_folder_path):
+        assert obb_label in self.obb_dict.keys()
+
+        save_object_file_path = save_folder_path + "object/" + obb_label + ".pcd"
+        save_obb_trans_matrix_file_path = save_folder_path + "obb_trans_matrix/" + obb_label + ".json"
+
+        if os.path.exists(save_object_file_path) and os.path.exists(
+                save_obb_trans_matrix_file_path):
+            return True
+
+        removeFile(save_object_file_path)
+        removeFile(save_obb_trans_matrix_file_path)
+
+        self.saveObjectPCD(obb_label, save_object_file_path)
+        self.saveOBBTransMatrix(obb_label, save_obb_trans_matrix_file_path)
+        return True
+
+    def saveAll(self, save_folder_path, print_progress=False):
+        os.makedirs(save_folder_path, exist_ok=True)
+
+        for_data = self.obb_dict.keys()
+        if print_progress:
+            print("[INFO][OBBTransfer::saveAll]")
+            print("\t start save all obb info...")
+            for_data = tqdm(for_data)
+        for obb_label in for_data:
+            self.saveOBB(obb_label, save_folder_path)
         return True
 
     def generateAll(self,
@@ -113,5 +182,5 @@ class OBBTransfer(object):
             renderObjectWithOBB(self.obb_dict)
 
         if save_folder_path is not None:
-            self.saveAll(save_folder_path)
+            self.saveAll(save_folder_path, print_progress)
         return True
