@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
+sys.path.append("../noc-transform")
+
 from obb_transfer.Module.obb_transfer import OBBTransfer
 
 
