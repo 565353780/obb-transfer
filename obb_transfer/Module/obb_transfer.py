@@ -46,7 +46,7 @@ class OBBTransfer(object):
             position = np.array(
                 [position_dict['x'], position_dict['y'], position_dict['z']])
 
-            rotation = np.array(
+            rotation = -np.array(
                 [rotation_dict['x'], rotation_dict['y'], rotation_dict['z']])
 
             scale = np.array(
@@ -57,7 +57,7 @@ class OBBTransfer(object):
 
             obb = OBB.fromABBPoints(min_point, max_point)
 
-            r = R.from_euler('zxy', rotation, degrees=True)
+            r = R.from_euler('xyz', rotation)
             rotate_matrix = r.as_matrix()
 
             points = obb.points
