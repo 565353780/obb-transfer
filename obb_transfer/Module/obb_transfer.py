@@ -5,6 +5,7 @@ import os
 import json
 import numpy as np
 import open3d as o3d
+from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R
 
 from noc_transform.Data.obb import OBB
@@ -31,13 +32,18 @@ class OBBTransfer(object):
         self.scene_pcd = o3d.io.read_point_cloud(scene_pcd_file_path)
         return True
 
-    def loadOBB(self, obb_label_file_path):
+    def loadOBB(self, obb_label_file_path, print_progress=False):
         assert os.path.exists(obb_label_file_path)
 
         with open(obb_label_file_path, 'r') as f:
             obb_label_dict_list = json.load(f)
 
-        for obb_label_dict in obb_label_dict_list:
+        for_data = obb_label_dict_list
+        if print_progress:
+            print("[INFO][OBBTransfer::loadOBB]")
+            print("\t start load obb labels...")
+            for_data = tqdm(for_data)
+        for obb_label_dict in for_data:
             obj_id = obb_label_dict['obj_id']
             obj_type = obb_label_dict['obj_type']
             pose_dict = obb_label_dict['psr']
@@ -70,8 +76,13 @@ class OBBTransfer(object):
             self.obb_dict[obj_id] = {'class': obj_type, 'obb': obb}
         return True
 
-    def generateObjectPCD(self):
-        for obb_label, obb_info in self.obb_dict.items():
+    def generateObjectPCD(self, print_progress=False):
+        for_data = self.obb_dict.items()
+        if print_progress:
+            print("[INFO][OBBTransfer::generateObjectPCD]")
+            print("\t start generate pcd for objects...")
+            for_data = tqdm(for_data)
+        for obb_label, obb_info in for_data:
             obb = obb_info['obb']
             o3d_obb = o3d.geometry.OrientedBoundingBox.create_from_points(
                 o3d.utility.Vector3dVector(obb.points))
@@ -81,14 +92,26 @@ class OBBTransfer(object):
             self.obb_dict[obb_label]['object_pcd'] = object_pcd
         return True
 
-    def generateAll(self, pcd_file_path, obb_label_file_path):
+    def saveAll(self, save_folder_path):
+        return True
+
+    def generateAll(self,
+                    pcd_file_path,
+                    obb_label_file_path,
+                    save_folder_path=None,
+                    render=False,
+                    print_progress=False):
         self.reset()
 
-        self.loadOBB(obb_label_file_path)
+        self.loadOBB(obb_label_file_path, print_progress)
         self.loadScenePCD(pcd_file_path)
 
-        self.generateObjectPCD()
+        self.generateObjectPCD(print_progress)
 
-        #  renderSceneWithOBB(self.scene_pcd, self.obb_dict)
-        renderObjectWithOBB(self.obb_dict)
+        if render:
+            renderSceneWithOBB(self.scene_pcd, self.obb_dict)
+            renderObjectWithOBB(self.obb_dict)
+
+        if save_folder_path is not None:
+            self.saveAll(save_folder_path)
         return True
