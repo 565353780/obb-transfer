@@ -19,10 +19,12 @@ def getOBBPCD(obb, color=None):
         line_set.colors = o3d.utility.Vector3dVector(colors)
     return line_set
 
-def renderSceneWithOBB(scene_pcd, obb_list):
+
+def renderSceneWithOBB(scene_pcd, obb_dict):
     render_list = [scene_pcd]
 
-    for obb in obb_list:
+    for obb_label, obb_info_dict in obb_dict.items():
+        obb = obb_info_dict['obb']
         obb_pcd = getOBBPCD(obb, [255, 0, 0])
         render_list.append(obb_pcd)
 

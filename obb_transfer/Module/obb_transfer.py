@@ -8,7 +8,6 @@ import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 
 from noc_transform.Data.obb import OBB
-from noc_transform.Module.transform_generator import TransformGenerator
 
 from obb_transfer.Method.path import createFileFolder, renameFile
 from obb_transfer.Method.render import renderSceneWithOBB
@@ -17,19 +16,23 @@ from obb_transfer.Method.render import renderSceneWithOBB
 class OBBTransfer(object):
 
     def __init__(self):
-        self.transform_generator = TransformGenerator()
+        self.scene_pcd = None
+        self.obb_dict = {}
         return
 
-    def getPCD(self, pcd_file_path):
-        assert os.path.exists(pcd_file_path)
+    def reset(self):
+        self.scene_pcd = None
+        self.obb_dict = {}
+        return True
 
-        pcd = o3d.io.read_point_cloud(pcd_file_path)
-        return pcd
+    def loadScenePCD(self, scene_pcd_file_path):
+        assert os.path.exists(scene_pcd_file_path)
 
-    def getOBBList(self, obb_label_file_path):
+        self.scene_pcd = o3d.io.read_point_cloud(scene_pcd_file_path)
+        return True
+
+    def loadOBB(self, obb_label_file_path):
         assert os.path.exists(obb_label_file_path)
-
-        obb_list = []
 
         with open(obb_label_file_path, 'r') as f:
             obb_label_dict_list = json.load(f)
@@ -54,7 +57,6 @@ class OBBTransfer(object):
 
             min_point = -0.5 * scale
             max_point = 0.5 * scale
-
             obb = OBB.fromABBPoints(min_point, max_point)
 
             r = R.from_euler('xyz', rotation)
@@ -65,15 +67,17 @@ class OBBTransfer(object):
             trans_points = rotate_points + position
             obb.points = trans_points
 
-            noc_trans_matrix = self.transform_generator.getNOCTransform(obb)
-            trans_matrix = np.linalg.inv(noc_trans_matrix)
+            self.obb_dict[obj_id] = {'class': obj_type, 'obb': obb}
+        return True
 
-            obb_list.append(obb)
-        return obb_list
+    def generateObjectPCD(self):
+        return
 
     def generateAll(self, pcd_file_path, obb_label_file_path):
-        obb_list = self.getOBBList(obb_label_file_path)
-        pcd = self.getPCD(pcd_file_path)
+        self.reset()
 
-        renderSceneWithOBB(pcd, obb_list)
+        self.loadOBB(obb_label_file_path)
+        self.loadScenePCD(pcd_file_path)
+
+        renderSceneWithOBB(self.scene_pcd, self.obb_dict)
         return True
