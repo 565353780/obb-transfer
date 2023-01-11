@@ -11,6 +11,7 @@ from noc_transform.Data.obb import OBB
 from noc_transform.Module.transform_generator import TransformGenerator
 
 from obb_transfer.Method.path import createFileFolder, renameFile
+from obb_transfer.Method.render import renderSceneWithOBB
 
 
 class OBBTransfer(object):
@@ -66,13 +67,13 @@ class OBBTransfer(object):
 
             noc_trans_matrix = self.transform_generator.getNOCTransform(obb)
             trans_matrix = np.linalg.inv(noc_trans_matrix)
-            exit()
+
+            obb_list.append(obb)
         return obb_list
 
     def generateAll(self, pcd_file_path, obb_label_file_path):
         obb_list = self.getOBBList(obb_label_file_path)
-        return
         pcd = self.getPCD(pcd_file_path)
 
-        #  o3d.visualization.draw_geometries([pcd])
+        renderSceneWithOBB(pcd, obb_list)
         return True
