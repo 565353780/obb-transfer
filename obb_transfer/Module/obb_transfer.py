@@ -10,9 +10,10 @@ from noc_transform.Data.obb import OBB
 from noc_transform.Module.transform_generator import TransformGenerator
 from scipy.spatial.transform import Rotation as R
 from tqdm import tqdm
+from copy import deepcopy
 
 from obb_transfer.Method.path import createFileFolder, renameFile, removeFile
-from obb_transfer.Method.render import renderObjectWithOBB, renderSceneWithOBB
+from obb_transfer.Method.render import renderObjectWithOBB, renderSceneWithOBB, renderNOCObjectWithOBB
 
 
 class OBBTransfer(object):
@@ -180,6 +181,7 @@ class OBBTransfer(object):
         if render:
             renderSceneWithOBB(self.scene_pcd, self.obb_dict)
             renderObjectWithOBB(self.obb_dict)
+            renderNOCObjectWithOBB(self.obb_dict)
 
         if save_folder_path is not None:
             self.saveAll(save_folder_path, print_progress)

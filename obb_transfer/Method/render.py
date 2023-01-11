@@ -3,6 +3,9 @@
 
 import numpy as np
 import open3d as o3d
+from copy import deepcopy
+
+from noc_transform.Method.transform import transPoints
 
 
 def getOBBPCD(obb, color=None):
@@ -42,6 +45,49 @@ def renderObjectWithOBB(obb_dict):
         obb = obb_info['obb']
         obb_pcd = getOBBPCD(obb, [255, 0, 0])
         render_list.append(obb_pcd)
+
+    o3d.visualization.draw_geometries(render_list)
+    return True
+
+
+def renderNOCObjectWithOBB(obb_dict):
+    render_list = []
+
+    obb_num = len(list(obb_dict.keys()))
+    row_num = np.sqrt(obb_num)
+
+    row_idx = 0
+    col_idx = 0
+    delta_translate = 1
+    for obb_label, obb_info in obb_dict.items():
+        object_pcd = deepcopy(obb_info['object_pcd'])
+        obb = obb_info['obb']
+        noc_trans_matrix = obb_info['noc_trans_matrix']
+
+        obb_pcd = getOBBPCD(obb, [255, 0, 0])
+        noc_obb_pcd = getOBBPCD(noc_obb, [0, 255, 0])
+
+        points = np.array(object_pcd.points)
+        points = transPoints(points, noc_trans_matrix)
+        object_pcd.points = o3d.utility.Vector3dVector(points)
+
+        points = np.array(obb_pcd.points)
+        points = transPoints(points, noc_trans_matrix)
+        obb_pcd.points = o3d.utility.Vector3dVector(points)
+
+        delta_translate = [
+            row_idx * delta_translate, col_idx * delta_translate, 0
+        ]
+        object_pcd.translate(delta_translate)
+        obb_pcd.translate(delta_translate)
+
+        render_list.append(object_pcd)
+        render_list.append(obb_pcd)
+
+        row_idx += 1
+        if row_idx == row_num:
+            row_idx = 0
+            col_idx += 1
 
     o3d.visualization.draw_geometries(render_list)
     return True
