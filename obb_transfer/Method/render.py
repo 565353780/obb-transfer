@@ -23,8 +23,23 @@ def getOBBPCD(obb, color=None):
 def renderSceneWithOBB(scene_pcd, obb_dict):
     render_list = [scene_pcd]
 
-    for obb_label, obb_info_dict in obb_dict.items():
-        obb = obb_info_dict['obb']
+    for obb_label, obb_info in obb_dict.items():
+        obb = obb_info['obb']
+        obb_pcd = getOBBPCD(obb, [255, 0, 0])
+        render_list.append(obb_pcd)
+
+    o3d.visualization.draw_geometries(render_list)
+    return True
+
+
+def renderObjectWithOBB(obb_dict):
+    render_list = []
+
+    for obb_label, obb_info in obb_dict.items():
+        object_pcd = obb_info['object_pcd']
+        render_list.append(object_pcd)
+
+        obb = obb_info['obb']
         obb_pcd = getOBBPCD(obb, [255, 0, 0])
         render_list.append(obb_pcd)
 

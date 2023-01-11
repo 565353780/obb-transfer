@@ -10,7 +10,7 @@ from scipy.spatial.transform import Rotation as R
 from noc_transform.Data.obb import OBB
 
 from obb_transfer.Method.path import createFileFolder, renameFile
-from obb_transfer.Method.render import renderSceneWithOBB
+from obb_transfer.Method.render import renderSceneWithOBB, renderObjectWithOBB
 
 
 class OBBTransfer(object):
@@ -71,7 +71,15 @@ class OBBTransfer(object):
         return True
 
     def generateObjectPCD(self):
-        return
+        for obb_label, obb_info in self.obb_dict.items():
+            obb = obb_info['obb']
+            o3d_obb = o3d.geometry.OrientedBoundingBox.create_from_points(
+                o3d.utility.Vector3dVector(obb.points))
+            #  self.obb_dict[obb_label]['o3d_obb'] = o3d_obb
+
+            object_pcd = self.scene_pcd.crop(o3d_obb)
+            self.obb_dict[obb_label]['object_pcd'] = object_pcd
+        return True
 
     def generateAll(self, pcd_file_path, obb_label_file_path):
         self.reset()
@@ -79,5 +87,8 @@ class OBBTransfer(object):
         self.loadOBB(obb_label_file_path)
         self.loadScenePCD(pcd_file_path)
 
-        renderSceneWithOBB(self.scene_pcd, self.obb_dict)
+        self.generateObjectPCD()
+
+        #  renderSceneWithOBB(self.scene_pcd, self.obb_dict)
+        renderObjectWithOBB(self.obb_dict)
         return True
