@@ -40,7 +40,10 @@ class OBBTransfer(object):
         self.scene_pcd = o3d.io.read_point_cloud(scene_pcd_file_path)
         return True
 
-    def getOBBDict(self, obb_label_file_path, print_progress=False):
+    def getOBBDict(self,
+                   obb_label_file_path,
+                   print_progress=False,
+                   trans_box=False):
         assert os.path.exists(obb_label_file_path)
 
         obb_dict = {}
@@ -83,7 +86,12 @@ class OBBTransfer(object):
             trans_points = rotate_points + position
             obb.points = trans_points
 
-            noc_trans_matrix = self.transform_generator.getNOCTransform(obb)
+            if trans_box:
+                noc_trans_matrix = self.transform_generator.getBoxTransform(
+                    obb)
+            else:
+                noc_trans_matrix = self.transform_generator.getNOCTransform(
+                    obb)
 
             obb_dict[obj_id] = {
                 'class': obj_type,
@@ -98,7 +106,7 @@ class OBBTransfer(object):
 
     def loadLayoutOBB(self, layout_obb_label_file_path, print_progress=False):
         self.layout_obb_dict = self.getOBBDict(layout_obb_label_file_path,
-                                               print_progress)
+                                               print_progress, True)
         return True
 
     def generateObjectPCD(self, print_progress=False):
